@@ -104,9 +104,17 @@ for i in range(num_epochs * num_steps):
 
     if i % num_steps == 0:
         ## VALIDATION
-        print("EPOCHS= ",i//num_steps, " ", acc_train / num_steps)
+        
+        acc_val = 0
+        num_steps_val = bmw_data.get_val_size() // batch_size
+        for j in range(num_steps_val):
+            x_val_batch, y_val_batch = bmw_data.get_val_batch()
+            feed_dict_val = {x : x_val_batch,
+                             y_true : y_val_batch}
+            acc_val += session.run(accuracy, feed_dict = feed_dict_val)
+        acc_val /= num_steps_val
+        print("Epoch ",i//num_steps, ": Train acc: ", acc_train / num_steps, " Val acc: ", acc_val)
         acc_train = 0
-
 
 
 
