@@ -1,4 +1,4 @@
-from bembara import *
+from car_data import *
 from utils import *
 import tensorflow as tf
 import time
@@ -16,12 +16,12 @@ set_random_seed(2)
 
 # Prepare data
 batch_size = 16
-num_classes = 10
+num_classes = 2
 img_size = 256
 num_channels = 3
 
-bmw_data = BMW(batch_size)
-bmw_data.load(img_size)
+data = CarData(batch_size)
+data.load(img_size)
 
 session = tf.Session()
 x = tf.placeholder(tf.float32, shape=[None, img_size, img_size, num_channels], name='x')
@@ -32,7 +32,7 @@ y_pre_one_hot = tf.cast(y_true, tf.uint8)
 y_one_hot = tf.one_hot(y_pre_one_hot, num_classes)
 y_true_cls = tf.argmax(y_one_hot, axis = 1)
 
-# xz, yz = bmw_data.get_train_batch()
+# xz, yz = data.get_train_batch()
 # print(session.run([y_one_hot, y_true_cls], feed_dict = {y_true: yz}))
 
 # Network graph params
@@ -77,7 +77,7 @@ y_pred_cls = tf.argmax(y_pred, dimension=1)
 
 session.run(tf.global_variables_initializer())
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=layer_fc2,
-                                                    labels=y_one_hot)
+                                                        labels=y_one_hot)
 cost = tf.reduce_mean(cross_entropy)
 optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
 correct_prediction = tf.equal(y_pred_cls, y_true_cls)
@@ -85,16 +85,16 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 
 session.run(tf.global_variables_initializer())
-num_epochs = 100
+num_epochs = 10
 acc_train = 0
 
 ## TRAIN
 
-num_steps = bmw_data.get_train_size() // batch_size
+num_steps = data.get_train_size() // batch_size
 
 for i in range(num_epochs * num_steps):
 
-    x_batch, y_batch = bmw_data.get_train_batch()
+    x_batch, y_batch = data.get_train_batch()
 
     feed_dict_tr = {x : x_batch,
                     y_true : y_batch}
@@ -102,18 +102,21 @@ for i in range(num_epochs * num_steps):
     session.run(optimizer, feed_dict = feed_dict_tr)
     acc_train += session.run(accuracy, feed_dict = feed_dict_tr)
 
+    if (i % 20 == 0):
+        print("Train acc: ", acc_train / ((i % num_steps) + 1))
+
     if i % num_steps == 0:
         ## VALIDATION
         
         acc_val = 0
-        num_steps_val = bmw_data.get_val_size() // batch_size
+        num_steps_val = data.get_val_size() // batch_size
         for j in range(num_steps_val):
-            x_val_batch, y_val_batch = bmw_data.get_val_batch()
+            x_val_batch, y_val_batch = data.get_val_batch()
             feed_dict_val = {x : x_val_batch,
                              y_true : y_val_batch}
             acc_val += session.run(accuracy, feed_dict = feed_dict_val)
         acc_val /= num_steps_val
-        print("Epoch ",i//num_steps, ": Train acc: ", acc_train / num_steps, " Val acc: ", acc_val)
+        print("Epoch ", i//num_steps, ": Train acc: ", acc_train / num_steps, " Val acc: ", acc_val)
         acc_train = 0
 
 

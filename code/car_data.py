@@ -5,8 +5,7 @@ import numpy as np
 import os
 
 
-class BMW:
-
+class CarData:
     def __init__(self, batch_size):
         self.train_pics = []
         self.train_labels = []
@@ -20,25 +19,19 @@ class BMW:
         self.num_val_examples = 0
 
     def load(self, image_size):
-        bmw = loadmat('bmw10_annos.mat')
-        str = os.getcwd() + "\\bmw10_ims"
         train_data = []
-        for example in bmw['annos'][0]:
-            label = example[1][0][0] - 1
-            im_path = example[0][0]
-            pic = misc.imread(str + "\\" + im_path)
-            # print(pic.shape)
-            # img = Image.fromarray(pic, 'RGB')
-            # img.save('my1.png')
-            # img.show()
-            # input("")
-            pic = misc.imresize(pic, (image_size, image_size, 3))
-            # print(pic.shape)
-            # img = Image.fromarray(pic, 'RGB')
-            # img.save('my.png')
-            # img.show()
-            # input("")
-            train_data.append((pic, label))
+        d = {}
+        mypath = "D:\scrappy\cars"
+        
+        for idx, dir in enumerate(os.listdir(mypath)):
+            d[idx] = dir
+            label = idx
+            subdir = os.path.join(mypath, dir)
+            for i, file in enumerate(os.listdir(subdir)):
+                pic = misc.imread(os.path.join(subdir, file))
+                pic = misc.imresize(pic, (image_size, image_size, 3))
+                train_data.append((pic, label))
+
         np.random.shuffle(train_data)
 
         validation_size = int(len(train_data) * 0.20)
@@ -84,11 +77,3 @@ class BMW:
 
     def get_val_size(self):
         return self.num_val_examples
-
-# bmw = BMW(16)
-# bmw.load(256)
-
-
-
-
-
