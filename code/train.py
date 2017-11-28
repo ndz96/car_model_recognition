@@ -1,5 +1,6 @@
 from car_data import *
 from utils import *
+from squeezenet import squeeze_net
 import tensorflow as tf
 import time
 from datetime import timedelta
@@ -17,7 +18,7 @@ set_random_seed(2)
 # Prepare data
 batch_size = 16
 num_classes = 2
-img_size = 256
+img_size = 227
 num_channels = 3
 
 data = CarData(batch_size)
@@ -36,50 +37,53 @@ y_true_cls = tf.argmax(y_one_hot, axis = 1)
 # print(session.run([y_one_hot, y_true_cls], feed_dict = {y_true: yz}))
 
 # Network graph params
-filter_size_conv1 = 3 
-num_filters_conv1 = 32
+# filter_size_conv1 = 3 
+# num_filters_conv1 = 32
 
-filter_size_conv2 = 3
-num_filters_conv2 = 32
+# filter_size_conv2 = 3
+# num_filters_conv2 = 32
 
-filter_size_conv3 = 3
-num_filters_conv3 = 64
+# filter_size_conv3 = 3
+# num_filters_conv3 = 64
 
-fc_layer_size = 128
+# fc_layer_size = 128
 
-layer_conv1 = create_convolutional_layer(input=x,
-               num_input_channels=num_channels,
-               conv_filter_size=filter_size_conv1,
-               num_filters=num_filters_conv1)
-layer_conv2 = create_convolutional_layer(input=layer_conv1,
-               num_input_channels=num_filters_conv1,
-               conv_filter_size=filter_size_conv2,
-               num_filters=num_filters_conv2)
-layer_conv3= create_convolutional_layer(input=layer_conv2,
-               num_input_channels=num_filters_conv2,
-               conv_filter_size=filter_size_conv3,
-               num_filters=num_filters_conv3)
+# layer_conv1 = create_convolutional_layer(input=x,
+#                num_input_channels=num_channels,
+#                conv_filter_size=filter_size_conv1,
+#                num_filters=num_filters_conv1)
+# layer_conv2 = create_convolutional_layer(input=layer_conv1,
+#                num_input_channels=num_filters_conv1,
+#                conv_filter_size=filter_size_conv2,
+#                num_filters=num_filters_conv2)
+# layer_conv3= create_convolutional_layer(input=layer_conv2,
+#                num_input_channels=num_filters_conv2,
+#                conv_filter_size=filter_size_conv3,
+#                num_filters=num_filters_conv3)
           
-layer_flat = create_flatten_layer(layer_conv3)
+# layer_flat = create_flatten_layer(layer_conv3)
 
-layer_fc1 = create_fc_layer(input=layer_flat,
-                     num_inputs=layer_flat.get_shape()[1:4].num_elements(),
-                     num_outputs=fc_layer_size,
-                     use_relu=True)
+# layer_fc1 = create_fc_layer(input=layer_flat,
+#                      num_inputs=layer_flat.get_shape()[1:4].num_elements(),
+#                      num_outputs=fc_layer_size,
+#                      use_relu=True)
 
-layer_fc2 = create_fc_layer(input=layer_fc1,
-                     num_inputs=fc_layer_size,
-                     num_outputs=num_classes,
-                     use_relu=False) 
+# layer_fc2 = create_fc_layer(input=layer_fc1,
+#                      num_inputs=fc_layer_size,
+#                      num_outputs=num_classes,
+#                      use_relu=False) 
 
-y_pred = tf.nn.softmax(layer_fc2,name='y_pred')
+logits = squeeze_net(x, num_classes, tf.constant(0.5, dtype=tf.float32))
+# print(logits.get_shape())
+
+y_pred = tf.nn.softmax(logits,name='y_pred')
 y_pred_cls = tf.argmax(y_pred, dimension=1)
 
 session.run(tf.global_variables_initializer())
-cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=layer_fc2,
+cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits,
                                                         labels=y_one_hot)
 cost = tf.reduce_mean(cross_entropy)
-optimizer = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(cost)
+optimizer = tf.train.MomentumOptimizer(0.1, 0.9).minimize(cost)
 correct_prediction = tf.equal(y_pred_cls, y_true_cls)
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
